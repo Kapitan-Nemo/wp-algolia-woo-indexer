@@ -315,9 +315,14 @@ if (!class_exists('Algolia_Woo_Indexer')) {
             $index_name = filter_input(INPUT_POST, 'algolia_woo_indexer_index_name', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY);
             $auto_send = filter_input(INPUT_POST, 'algolia_woo_indexer_automatically_send_new_products', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY);
 
+            // check if null or empty
+            if (empty($application_id) || empty($api_key) || empty($index_name)) {
+                return;
+            }
             $sanitized_app_id = sanitize_text_field($application_id['id']);
             $sanitized_api_key = sanitize_text_field($api_key['key']);
             $sanitized_index_name = sanitize_text_field($index_name['name']);
+            
             $sanitized_auto_send = (!empty($auto_send)) ? 1 : 0;
 
             $options = [

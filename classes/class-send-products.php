@@ -48,7 +48,7 @@ if (!class_exists('Algolia_Send_Products')) {
     /**
      * Algolia WooIndexer main class
      */
-    
+
     // TODO Rename class "Algolia_Send_Products" to match the regular expression ^[A-Z][a-zA-Z0-9]*$.
     class Algolia_Send_Products
     {
@@ -110,130 +110,133 @@ if (!class_exists('Algolia_Send_Products')) {
          *
          * @param Int $id Product to send to Algolia if we send only a single product
          * @return void
-         */
-        public static function send_products_to_algolia($id = '')
-        {
-            /**
-             * Remove classes from plugin URL and autoload Algolia with Composer
-             */
+        */
+                public static function send_products_to_algolia($id = '')
+                {
+                    /**
+                     * Remove classes from plugin URL and autoload Algolia with Composer
+                     */
 
-            $base_plugin_directory = str_replace('classes', '', dirname(__FILE__));
-            require_once $base_plugin_directory . '/vendor/autoload.php';
+                    $base_plugin_directory = str_replace('classes', '', dirname(__FILE__));
+                    require_once $base_plugin_directory . '/vendor/autoload.php';
 
-            /**
-             * Fetch the required variables from the Settings API
-             */
+                    /**
+                     * Fetch the required variables from the Settings API
+                     */
 
-            $algolia_application_id = get_option(ALGOWOO_DB_OPTION . ALGOLIA_APP_ID);
-            $algolia_application_id = is_string($algolia_application_id) ? $algolia_application_id : CHANGE_ME;
+                    $algolia_application_id = get_option(ALGOWOO_DB_OPTION . ALGOLIA_APP_ID);
+                    $algolia_application_id = is_string($algolia_application_id) ? $algolia_application_id : CHANGE_ME;
 
-            $algolia_api_key        = get_option(ALGOWOO_DB_OPTION . ALGOLIA_API_KEY);
-            $algolia_api_key        = is_string($algolia_api_key) ? $algolia_api_key : CHANGE_ME;
+                    $algolia_api_key        = get_option(ALGOWOO_DB_OPTION . ALGOLIA_API_KEY);
+                    $algolia_api_key        = is_string($algolia_api_key) ? $algolia_api_key : CHANGE_ME;
 
-            $algolia_index_name     = get_option(ALGOWOO_DB_OPTION . INDEX_NAME);
-            $algolia_index_name        = is_string($algolia_index_name) ? $algolia_index_name : CHANGE_ME;
+                    $algolia_index_name     = get_option(ALGOWOO_DB_OPTION . INDEX_NAME);
+                    $algolia_index_name        = is_string($algolia_index_name) ? $algolia_index_name : CHANGE_ME;
 
-            /**
-             * Display admin notice and return if not all values have been set
-             */
+                    /**
+                     * Display admin notice and return if not all values have been set
+                     */
 
-            Algolia_Check_Requirements::check_algolia_input_values($algolia_application_id, $algolia_api_key, $algolia_index_name);
+                    Algolia_Check_Requirements::check_algolia_input_values($algolia_application_id, $algolia_api_key, $algolia_index_name);
 
-            /**
-             * Initiate the Algolia client
-             */
-            self::$algolia = \Algolia\AlgoliaSearch\SearchClient::create($algolia_application_id, $algolia_api_key);
+                    /**
+                     * Initiate the Algolia client
+                     */
+                    self::$algolia = \Algolia\AlgoliaSearch\SearchClient::create($algolia_application_id, $algolia_api_key);
 
-            /**
-             * Check if we can connect, if not, handle the exception, display an error and then return
-             */
-            self::can_connect_to_algolia();
+                    /**
+                     * Check if we can connect, if not, handle the exception, display an error and then return
+                     */
+                    self::can_connect_to_algolia();
 
-            /**
-             * Initialize the search index and set the name to the option from the database
-             */
-            $index = self::$algolia->initIndex($algolia_index_name);
+                    /**
+                     * Initialize the search index and set the name to the option from the database
+                     */
+                    $index = self::$algolia->initIndex($algolia_index_name);
 
-            /**
-             * Setup arguments for sending all products to Algolia
-             *
-             * Limit => -1 means we send all products
-             */
-            $arguments = array(
-                'status'   => 'publish',
-                'limit'    => -1,
-                'paginate' => false,
-            );
+                    /**
+                     * Setup arguments for sending all products to Algolia
+                     *
+                     * Limit => -1 means we send all products
+                     */
+                    $arguments = array(
+                        'status'        => 'publish',
+                        'limit'         => -1,
+                        'paginate'      => false,
+                        'stock_status'  => 'instock', // Only include products that are in stock
+                    );
 
-            /**
-             * Setup arguments for sending only a single product
-             */
-            if (isset($id) && '' !== $id) {
-                $arguments = array(
-                    'status'   => 'publish',
-                    'include'  => array($id),
-                    'paginate' => false,
-                );
+                    /**
+                     * Setup arguments for sending only a single product
+                     */
+                    if (isset($id) && '' !== $id) {
+                        $arguments = array(
+                            'status'   => 'publish',
+                            'include'  => array($id),
+                            'paginate' => false,
+                        );
+                    }
+
+                    /**
+                     * Fetch all products from WooCommerce
+                     *
+                     * @see https://docs.woocommerce.com/wc-apidocs/function-wc_get_products.html
+                     */
+                    $products =
+                        /** @scrutinizer ignore-call */
+                        wc_get_products($arguments);
+
+                    if (empty($products)) {
+                        return;
+                    }
+                    $records = array();
+                    $record  = array();
+
+                    foreach ($products as $product) {
+                        /**
+                         * Set sale price or regular price based on product type
+                         */
+                        $product_type_price = self::get_product_type_price($product);
+                        $sale_price = $product_type_price['sale_price'];
+                        $regular_price = $product_type_price['regular_price'];
+                        $get_categories = explode(',', wp_strip_all_tags(str_replace('&amp;', '&', wc_get_product_category_list($product->get_id())), false));
+                        /**
+                         * Extract image from $product->get_image()
+                         */
+                        preg_match('/<img(.*)src(.*)=(.*)"(.*)"/U', $product->get_image(), $result);
+                        $product_image = array_pop($result);
+                        /**
+                         * Build the record array using the information from the WooCommerce product
+                         */
+                        $record['objectID']                      = $product->get_id();
+                        $record['product_name']                  = $product->get_name();
+                        $record['product_image']                 = $product_image;
+                        $record['short_description']             = str_replace('&amp;', '&', $product->get_short_description());
+                        $record['description']                   = str_replace('&amp;', '&', $product->get_description());
+                        $record['regular_price']                 = $regular_price;
+                        $record['sale_price']                    = $sale_price;
+                        $record['categories']                    = $get_categories;
+                        $record['slug']                          = $product->get_slug();
+                        $record['total_sales']                   = $product->get_total_sales();
+                        $records[] = $record;
+                    }
+                    wp_reset_postdata();
+                    /**
+                     * Send the information to Algolia and save the result
+                     * If result is NullResponse, print an error message
+                     */
+                    $result = $index->saveObjects($records);
+
+                    if ('Algolia\AlgoliaSearch\Response\NullResponse' === get_class($result)) {
+                        wp_die(esc_html__('No response from the server. Please check your settings and try again', 'algolia_woo_indexer_settings'));
+                    }
+
+                    /**
+                     * Display success message
+                     */
+                    echo '<div class="notice notice-success is-dismissible">
+        					 	<p>' . esc_html__('Product(s) sent to Algolia.', 'algolia-woo-indexer') . '</p>
+        				  		</div>';
+                }
             }
-
-            /**
-             * Fetch all products from WooCommerce
-             *
-             * @see https://docs.woocommerce.com/wc-apidocs/function-wc_get_products.html
-             */
-            $products =
-                /** @scrutinizer ignore-call */
-                wc_get_products($arguments);
-
-            if (empty($products)) {
-                return;
-            }
-            $records = array();
-            $record  = array();
-
-            foreach ($products as $product) {
-                /**
-                 * Set sale price or regular price based on product type
-                 */
-                $product_type_price = self::get_product_type_price($product);
-                $sale_price = $product_type_price['sale_price'];
-                $regular_price = $product_type_price['regular_price']; 
-
-                /**
-                 * Extract image from $product->get_image()
-                 */
-                preg_match('/<img(.*)src(.*)=(.*)"(.*)"/U', $product->get_image(), $result);
-                $product_image = array_pop($result);
-                /**
-                 * Build the record array using the information from the WooCommerce product
-                 */
-                $record['objectID']                      = $product->get_id();
-                $record['product_name']                  = $product->get_name();
-                $record['product_image']                 = $product_image;
-                $record['short_description']             = $product->get_short_description();
-                $record['regular_price']                 = $regular_price;
-                $record['sale_price']                    = $sale_price;
-                $record['on_sale']                       = $product->is_on_sale();
-                $records[] = $record;
-            }
-            wp_reset_postdata();
-
-            /**
-             * Send the information to Algolia and save the result
-             * If result is NullResponse, print an error message
-             */
-            $result = $index->saveObjects($records);
-
-            if ('Algolia\AlgoliaSearch\Response\NullResponse' === get_class($result)) {
-                wp_die(esc_html__('No response from the server. Please check your settings and try again', 'algolia_woo_indexer_settings'));
-            }
-
-            /**
-             * Display success message
-             */
-            echo '<div class="notice notice-success is-dismissible">
-					 	<p>' . esc_html__('Product(s) sent to Algolia.', 'algolia-woo-indexer') . '</p>
-				  		</div>';
         }
-    }
-}
