@@ -218,6 +218,8 @@ if (!class_exists('Algolia_Send_Products')) {
                         $record['categories']                    = $get_categories;
                         $record['slug']                          = $product->get_slug();
                         $record['total_sales']                   = $product->get_total_sales();
+                        $record['average_rating']                = $product->get_average_rating();
+                        $record['rating_count']                  = $product->get_rating_count();
                         $records[] = $record;
                     }
                     wp_reset_postdata();
