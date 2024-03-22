@@ -42,7 +42,20 @@ require_once plugin_dir_path( __FILE__ ) . '/classes/class-verify-nonces.php';
  */
 require_once plugin_dir_path( __FILE__ ) . '/classes/class-send-products.php';
 
+
+/**
+ * HPOS Support for Algolia WooCommerce Indexer
+ */
+
+ add_action( 'before_woocommerce_init', function() {
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
+} );
+
 $algowooindexer = \Algowoo\Algolia_Woo_Indexer::get_instance();
 
 register_activation_hook( __FILE__, array( $algowooindexer, 'activate_plugin' ) );
 register_deactivation_hook( __FILE__, array( $algowooindexer, 'deactivate_plugin' ) );
+
+
