@@ -236,9 +236,9 @@ if (!class_exists('Algolia_Send_Products')) {
                     /**
                      * Display success message
                      */
-                    echo '<div class="notice notice-success is-dismissible">
-        					 	<p>' . esc_html__('Product(s) sent to Algolia.', 'algolia-woo-indexer') . '</p>
-        				  		</div>';
+                    // echo '<div class="notice notice-success is-dismissible">
+        			// 		 	<p>' . esc_html__('Product(s) sent to Algolia.', 'algolia-woo-indexer') . '</p>
+        			// 	  		</div>';
                 }
             }
         }
