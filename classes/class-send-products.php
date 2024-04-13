@@ -199,7 +199,8 @@ if (!class_exists('Algolia_Send_Products')) {
                         $product_type_price = self::get_product_type_price($product);
                         $sale_price = $product_type_price['sale_price'];
                         $regular_price = $product_type_price['regular_price'];
-                        $get_categories = explode(',', wp_strip_all_tags(str_replace('&amp;', '&', wc_get_product_category_list($product->get_id())), false));
+                        $get_categories = array_map('trim', explode(',', wp_strip_all_tags(str_replace('&amp;', '&', wc_get_product_category_list($product->get_id())), false)));
+                        $get_tags = array_map('trim', explode(',', wp_strip_all_tags(str_replace('&amp;', '&', wc_get_product_tag_list($product->get_id())), false)));
                         /**
                          * Extract image from $product->get_image()
                          */
@@ -216,6 +217,7 @@ if (!class_exists('Algolia_Send_Products')) {
                         $record['regular_price']                 = $regular_price;
                         $record['sale_price']                    = $sale_price;
                         $record['categories']                    = $get_categories;
+                        $record['tags']                          = $get_tags;
                         $record['slug']                          = $product->get_slug();
                         $record['total_sales']                   = $product->get_total_sales();
                         $record['average_rating']                = $product->get_average_rating();
