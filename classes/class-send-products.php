@@ -201,6 +201,7 @@ if (!class_exists('Algolia_Send_Products')) {
                         $regular_price = $product_type_price['regular_price'];
                         $get_categories = array_map('trim', explode(',', wp_strip_all_tags(str_replace('&amp;', '&', wc_get_product_category_list($product->get_id())), false)));
                         $get_tags = array_map('trim', explode(',', wp_strip_all_tags(str_replace('&amp;', '&', wc_get_product_tag_list($product->get_id())), false)));
+                        $stock_status = $product->get_stock_status();
                         /**
                          * Extract image from $product->get_image()
                          */
@@ -222,7 +223,7 @@ if (!class_exists('Algolia_Send_Products')) {
                         $record['total_sales']                   = $product->get_total_sales();
                         $record['average_rating']                = $product->get_average_rating();
                         $record['rating_count']                  = $product->get_rating_count();
-                        $record['stock_status']                  = $product->get_stock_status();
+                        $record['in_stock'] = ($stock_status == 'instock') ? true : false;
                         $records[] = $record;
                     }
                     wp_reset_postdata();
