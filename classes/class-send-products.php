@@ -163,7 +163,7 @@ if (!class_exists('Algolia_Send_Products')) {
                         'status'        => 'publish',
                         'limit'         => -1,
                         'paginate'      => false,
-                        'stock_status'  => 'instock', // Only include products that are in stock
+                        // 'stock_status'  => 'instock', // Only include products that are in stock
                     );
 
                     /**
@@ -222,6 +222,7 @@ if (!class_exists('Algolia_Send_Products')) {
                         $record['total_sales']                   = $product->get_total_sales();
                         $record['average_rating']                = $product->get_average_rating();
                         $record['rating_count']                  = $product->get_rating_count();
+                        $record['stock_status']                  = $product->get_stock_status();
                         $records[] = $record;
                     }
                     wp_reset_postdata();
